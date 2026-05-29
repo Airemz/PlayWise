@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm -v)",
+      "Bash(npx --yes create-next-app@latest . --typescript --tailwind --app --eslint --src-dir --import-alias \"@/*\" --no-turbopack --use-npm --yes)",
+      "Bash(npm install *)",
+      "Bash(npx tsc *)",
+      "Bash(MONGODB_URI=\"mongodb://placeholder/ignored\" RAWG_API_KEY=placeholder GEMINI_API_KEY=placeholder npm run build)"
+    ]
+  }
+}
