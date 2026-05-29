@@ -69,7 +69,7 @@ Open [http://localhost:3000](http://localhost:3000).
 | `GEMINI_API_KEY` | https://aistudio.google.com/app/apikey |
 | `MONGODB_URI` | Your MongoDB Atlas connection string |
 | `MONGODB_DB` | Database name (defaults to `playwise`) |
-| `GEMINI_MODEL` | Optional, defaults to `gemini-2.0-flash` |
+| `GEMINI_MODEL` | Optional, defaults to `gemini-2.5-flash`; use `gemini-2.5-flash-lite` for a more free-tier-friendly demo |
 
 CheapShark requires no key.
 

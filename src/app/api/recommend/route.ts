@@ -126,6 +126,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ id: insertedId.toString(), ...run });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Recommendation failed";
-    return NextResponse.json({ error: message }, { status: 500 });
+    const status = /quota|rate|429/i.test(message) ? 429 : 500;
+    return NextResponse.json({ error: message }, { status });
   }
 }

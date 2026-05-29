@@ -48,7 +48,7 @@ export function SaveButton({ game }: Props) {
             released: game.released,
             rating: game.rating,
             genres: game.genres?.map((g) => ({ id: g.id, name: g.name })),
-            platforms: game.platforms?.map((p) => ({ id: p.id, name: p.name })),
+            platforms: game.platforms?.map(({ platform }) => ({ id: platform.id, name: platform.name })),
           }),
         });
         setSaved(true);

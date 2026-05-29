@@ -8,10 +8,26 @@ import { formatPrice } from "@/lib/utils";
 export function RecommendationCard({ rec }: { rec: Recommendation }) {
   const href = rec.rawgSlug ? `/games/${rec.rawgSlug}` : rec.rawgId ? `/games/${rec.rawgId}` : null;
 
-  const content = (
+  return (
     <div className="flex h-full flex-col overflow-hidden rounded-xl border border-border bg-card transition-colors hover:border-primary/40">
       <div className="relative aspect-[16/9] w-full bg-secondary">
-        {rec.background_image ? (
+        {href ? (
+          <Link href={href} aria-label={`View ${rec.title}`} className="block h-full w-full">
+            {rec.background_image ? (
+              <Image
+                src={rec.background_image}
+                alt={rec.title}
+                fill
+                sizes="(min-width: 1024px) 33vw, 50vw"
+                className="object-cover"
+              />
+            ) : (
+              <div className="flex h-full w-full items-center justify-center text-xs text-muted-foreground">
+                No image available
+              </div>
+            )}
+          </Link>
+        ) : rec.background_image ? (
           <Image
             src={rec.background_image}
             alt={rec.title}
@@ -29,7 +45,15 @@ export function RecommendationCard({ rec }: { rec: Recommendation }) {
         </div>
       </div>
       <div className="flex flex-1 flex-col gap-3 p-4">
-        <h3 className="text-base font-semibold tracking-tight">{rec.title}</h3>
+        <h3 className="text-base font-semibold tracking-tight">
+          {href ? (
+            <Link href={href} className="hover:text-primary">
+              {rec.title}
+            </Link>
+          ) : (
+            rec.title
+          )}
+        </h3>
         <p className="text-sm text-muted-foreground">{rec.reason}</p>
         <div className="mt-auto flex flex-wrap items-center gap-2 pt-2">
           {typeof rec.estimatedPrice === "number" ? (
@@ -51,7 +75,6 @@ export function RecommendationCard({ rec }: { rec: Recommendation }) {
               target="_blank"
               rel="noreferrer"
               className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
-              onClick={(e) => e.stopPropagation()}
             >
               View deal <ExternalLink className="h-3 w-3" />
             </a>
@@ -60,13 +83,4 @@ export function RecommendationCard({ rec }: { rec: Recommendation }) {
       </div>
     </div>
   );
-
-  if (href) {
-    return (
-      <Link href={href} className="block h-full">
-        {content}
-      </Link>
-    );
-  }
-  return content;
 }

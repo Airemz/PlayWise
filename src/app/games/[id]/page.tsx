@@ -19,6 +19,7 @@ export default async function GamePage({ params }: { params: Promise<{ id: strin
   }
   const price = await findCheapestDealForTitle(game.name);
   const description = stripHtml(game.description ?? "");
+  const platforms = game.platforms?.map((entry) => entry.platform).filter(Boolean) ?? [];
 
   return (
     <article>
@@ -40,7 +41,7 @@ export default async function GamePage({ params }: { params: Promise<{ id: strin
         )}
       </section>
 
-      <section className="container -mt-24 pb-16 sm:-mt-32">
+      <section className="container relative z-10 -mt-24 pb-16 sm:-mt-32">
         <div className="flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <div className="mb-3 flex flex-wrap items-center gap-2">
@@ -67,7 +68,9 @@ export default async function GamePage({ params }: { params: Promise<{ id: strin
               ) : null}
             </div>
           </div>
-          <SaveButton game={game} />
+          <div className="relative z-20">
+            <SaveButton game={game} />
+          </div>
         </div>
 
         <div className="mt-8 grid gap-8 lg:grid-cols-[2fr_1fr]">
@@ -130,11 +133,15 @@ export default async function GamePage({ params }: { params: Promise<{ id: strin
                 Platforms
               </h3>
               <div className="flex flex-wrap gap-1.5">
-                {game.platforms?.map((p) => (
-                  <Badge key={p.id} variant="secondary">
-                    {p.name}
-                  </Badge>
-                )) ?? <span className="text-sm text-muted-foreground">Unknown</span>}
+                {platforms.length ? (
+                  platforms.map((p) => (
+                    <Badge key={p.id} variant="secondary">
+                      {p.name}
+                    </Badge>
+                  ))
+                ) : (
+                  <span className="text-sm text-muted-foreground">Unknown</span>
+                )}
               </div>
             </div>
 

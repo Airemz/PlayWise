@@ -4,6 +4,10 @@ export type Platform = {
   slug: string;
 };
 
+export type GamePlatform = {
+  platform: Platform;
+};
+
 export type Genre = {
   id: number;
   name: string;
@@ -36,7 +40,7 @@ export type GameSummary = {
   rating: number;
   metacritic: number | null;
   genres: Genre[];
-  platforms: Platform[];
+  platforms: GamePlatform[];
   parent_platforms?: { platform: Platform }[];
 };
 

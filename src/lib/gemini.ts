@@ -7,7 +7,7 @@ function client() {
   return new GoogleGenerativeAI(key);
 }
 
-const MODEL = process.env.GEMINI_MODEL || "gemini-2.0-flash";
+const MODEL = process.env.GEMINI_MODEL || "gemini-2.5-flash";
 
 export type RecommendationContext = {
   preferences: Preferences;
@@ -40,7 +40,18 @@ export async function generateRecommendations(ctx: RecommendationContext): Promi
 
   const prompt = buildPrompt(ctx);
 
-  const result = await model.generateContent(prompt);
+  let result;
+  try {
+    result = await model.generateContent(prompt);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    if (/429|quota|rate/i.test(message)) {
+      throw new Error(
+        `Gemini quota exceeded for model "${MODEL}". Try setting GEMINI_MODEL=gemini-2.5-flash-lite (more generous free tier), or wait a minute and retry. Original: ${message}`
+      );
+    }
+    throw err;
+  }
   const raw = result.response.text();
 
   let parsed: unknown;
