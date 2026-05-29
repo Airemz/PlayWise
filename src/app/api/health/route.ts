@@ -13,7 +13,9 @@ type Check = {
   message?: string;
 };
 
-export async function GET() {
+export async function GET(req: Request) {
+  const { searchParams } = new URL(req.url);
+  const deep = searchParams.get("deep") === "1";
   const rawgKey = process.env.RAWG_API_KEY;
   const geminiKey = process.env.GEMINI_API_KEY;
   const geminiModel = process.env.GEMINI_MODEL || "gemini-2.5-flash";
@@ -23,7 +25,7 @@ export async function GET() {
     checkMongo(Boolean(mongoUri)),
     checkRawg(rawgKey),
     checkCheapShark(),
-    checkGemini(geminiKey, geminiModel),
+    deep ? checkGeminiGenerate(geminiKey, geminiModel) : checkGemini(geminiKey, geminiModel),
   ]);
 
   return NextResponse.json({
@@ -82,6 +84,33 @@ async function checkGemini(key: string | undefined, model: string): Promise<Chec
     const url = new URL(`${GEMINI_BASE}/models/${model}`);
     url.searchParams.set("key", key);
     const res = await fetch(url, { cache: "no-store" });
+    return { ok: res.ok, status: res.status, message: res.ok ? undefined : await safeText(res) };
+  } catch (err) {
+    return errorCheck(err);
+  }
+}
+
+async function checkGeminiGenerate(key: string | undefined, model: string): Promise<Check> {
+  if (!key) return { ok: false, message: "GEMINI_API_KEY is missing" };
+  try {
+    const url = new URL(`${GEMINI_BASE}/models/${model}:generateContent`);
+    url.searchParams.set("key", key);
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      cache: "no-store",
+      body: JSON.stringify({
+        contents: [
+          {
+            parts: [{ text: "Reply with exactly: ok" }],
+          },
+        ],
+        generationConfig: {
+          maxOutputTokens: 4,
+          temperature: 0,
+        },
+      }),
+    });
     return { ok: res.ok, status: res.status, message: res.ok ? undefined : await safeText(res) };
   } catch (err) {
     return errorCheck(err);

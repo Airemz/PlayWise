@@ -1,14 +1,36 @@
 import type { CheapSharkDeal, PriceSummary } from "@/types";
 
 const BASE = "https://www.cheapshark.com/api/1.0";
+const BLOCK_COOLDOWN_MS = 10 * 60 * 1000;
+const FETCH_TIMEOUT_MS = 4000;
 
 let storesCache: Map<string, string> | null = null;
+let blockedUntil = 0;
+
+type FetchInit = RequestInit & { next?: { revalidate?: number } };
+
+async function fetchCheapShark(url: string | URL, init: FetchInit = {}): Promise<Response | null> {
+  if (Date.now() < blockedUntil) return null;
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+
+  try {
+    const res = await fetch(url, { ...init, signal: controller.signal });
+    if (res.status === 429) blockedUntil = Date.now() + BLOCK_COOLDOWN_MS;
+    return res;
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
 
 async function loadStores(): Promise<Map<string, string>> {
   if (storesCache) return storesCache;
   try {
-    const res = await fetch(`${BASE}/stores`, { next: { revalidate: 60 * 60 * 24 } });
-    if (!res.ok) return new Map();
+    const res = await fetchCheapShark(`${BASE}/stores`, { next: { revalidate: 60 * 60 * 24 } });
+    if (!res?.ok) return new Map();
     const data = (await res.json()) as { storeID: string; storeName: string }[];
     storesCache = new Map(data.map((s) => [s.storeID, s.storeName]));
     return storesCache;
@@ -23,8 +45,8 @@ export async function findCheapestDealForTitle(title: string): Promise<PriceSumm
     url.searchParams.set("title", title);
     url.searchParams.set("limit", "5");
     url.searchParams.set("exact", "0");
-    const res = await fetch(url.toString(), { next: { revalidate: 60 * 30 } });
-    if (!res.ok) return { available: false };
+    const res = await fetchCheapShark(url, { next: { revalidate: 60 * 30 } });
+    if (!res?.ok) return { available: false };
     const matches = (await res.json()) as CheapSharkDeal[];
     if (!matches.length) return { available: false };
 
@@ -33,8 +55,8 @@ export async function findCheapestDealForTitle(title: string): Promise<PriceSumm
 
     const detailUrl = new URL(`${BASE}/games`);
     detailUrl.searchParams.set("id", pick.gameID);
-    const detailRes = await fetch(detailUrl.toString(), { next: { revalidate: 60 * 30 } });
-    if (!detailRes.ok) return basicSummary(pick);
+    const detailRes = await fetchCheapShark(detailUrl, { next: { revalidate: 60 * 30 } });
+    if (!detailRes?.ok) return basicSummary(pick);
     const detail = (await detailRes.json()) as {
       info: { title: string; thumb: string };
       cheapestPriceEver: { price: string; date: number };

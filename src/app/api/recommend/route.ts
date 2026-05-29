@@ -62,10 +62,13 @@ function platformsParam(prefs: string[]): string | undefined {
 }
 
 export async function POST(req: Request) {
+  let stage = "initializing";
   try {
+    stage = "reading user";
     const userId = await getOrCreateUserId();
     const prefs = PreferencesSchema.parse(await req.json());
 
+    stage = "loading saved games";
     const db = await getDb();
     const saved = (await db
       .collection(Collections.savedGames)
@@ -75,11 +78,13 @@ export async function POST(req: Request) {
       .toArray()) as unknown as SavedGame[];
 
     // Persist latest preferences
+    stage = "saving preferences";
     await db
       .collection(Collections.preferences)
       .updateOne({ userId }, { $set: { userId, prefs, updatedAt: new Date() } }, { upsert: true });
 
     // Build candidate pool from RAWG
+    stage = "loading RAWG candidates";
     const pool = await searchGames({
       genres: genresParam(prefs.genres),
       platforms: platformsParam(prefs.platforms),
@@ -91,8 +96,9 @@ export async function POST(req: Request) {
     const candidates: GameSummary[] = (pool?.results ?? []).filter((g) => !savedIds.has(g.id));
 
     const prices: Record<string, PriceSummary> = {};
+    stage = "loading price data";
     await Promise.all(
-      candidates.slice(0, 10).map(async (c) => {
+      candidates.slice(0, 4).map(async (c) => {
         prices[c.name] = await findCheapestDealForTitle(c.name);
       })
     );
@@ -112,8 +118,10 @@ export async function POST(req: Request) {
       })),
     };
 
+    stage = "generating Gemini recommendations";
     const recommendations = await generateRecommendations(context);
 
+    stage = "saving recommendation run";
     const run = {
       userId,
       createdAt: new Date(),
@@ -127,6 +135,7 @@ export async function POST(req: Request) {
   } catch (err) {
     const message = err instanceof Error ? err.message : "Recommendation failed";
     const status = /quota|rate|429/i.test(message) ? 429 : 500;
-    return NextResponse.json({ error: message }, { status });
+    console.error(`[recommend] failed during ${stage}`, err);
+    return NextResponse.json({ error: `Recommendation failed during ${stage}: ${message}` }, { status });
   }
 }
